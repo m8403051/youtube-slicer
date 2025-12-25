@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube Slicer</title>
+    <style>
+      :root {
+        --bg: #121214;
+        --panel: #1e1f24;
+        --text: #f5f5f7;
+        --muted: #a7a7ad;
+        --accent: #ffb454;
+        --danger: #ff6b6b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Noto Sans TC", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        width: 360px;
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 18px;
+        margin: 0 0 12px;
+        letter-spacing: 0.5px;
+      }
+
+      .spacer {
+        height: 6px;
+      }
+
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--panel);
+        padding: 10px 12px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+      }
+
+      .toggle-row span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .toggle {
+        position: relative;
+        width: 48px;
+        height: 26px;
+      }
+
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background-color: #3a3b42;
+        border-radius: 999px;
+        transition: 0.2s;
+      }
+
+      .slider::before {
+        content: "";
+        position: absolute;
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        top: 3px;
+        background-color: #f2f2f2;
+        border-radius: 50%;
+        transition: 0.2s;
+      }
+
+      .toggle input:checked + .slider {
+        background-color: var(--accent);
+      }
+
+      .toggle input:checked + .slider::before {
+        transform: translateX(22px);
+      }
+
+      #status-text {
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      
+    </style>
+  </head>
+  <body>
+    <h1>功能設定</h1>
+    <div class="toggle-row">
+      <div>
+        <div>紀錄時間</div>
+        <span id="status-text">已關閉</span>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-record" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="spacer"></div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

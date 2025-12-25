@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Slicer",
+  "version": "0.1.0",
+  "description": "Record YouTube timestamps and navigate back quickly.",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["https://www.youtube.com/*", "https://youtu.be/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YouTube Slicer"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://youtu.be/*"],
+      "js": ["content_script.js"]
+    }
+  ]
+}
