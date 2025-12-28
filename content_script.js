@@ -65,6 +65,7 @@ function createOverlay() {
         <button id="yt-slicer-record">記錄</button>
         <button id="yt-slicer-clear">清除</button>
         <button id="yt-slicer-export">匯出</button>
+        <button id="yt-slicer-import">匯入</button>
       </div>
     </div>
     <div class="yt-slicer-list" id="yt-slicer-list"></div>
@@ -145,6 +146,11 @@ function createOverlay() {
 
     .yt-slicer-actions button#yt-slicer-export {
       background: #6ee7ff;
+      color: #1e1e22;
+    }
+
+    .yt-slicer-actions button#yt-slicer-import {
+      background: #c2f970;
       color: #1e1e22;
     }
 
@@ -386,10 +392,141 @@ function exportRecords() {
   });
 }
 
+function isYouTubeUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    return (
+      host === "youtu.be" ||
+      host === "youtube.com" ||
+      host.endsWith(".youtube.com")
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+function parseTimeFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const raw = parsed.searchParams.get("t");
+    if (!raw) {
+      return null;
+    }
+    const seconds = Number.parseInt(raw, 10);
+    if (Number.isNaN(seconds) || seconds < 0) {
+      return null;
+    }
+    return seconds;
+  } catch (error) {
+    return null;
+  }
+}
+
+function parseImportCsv(csvText) {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) {
+    return { error: "匯入檔案沒有內容。" };
+  }
+
+  let startIndex = 0;
+  if (/^sn\s*,\s*url/i.test(lines[0]) || /^index\s*,/i.test(lines[0])) {
+    startIndex = 1;
+  }
+
+  const entries = [];
+  for (let i = startIndex; i < lines.length; i += 1) {
+    const line = lines[i];
+    const [indexPart, ...urlParts] = line.split(",");
+    const indexText = (indexPart || "").trim();
+    const urlText = urlParts.join(",").trim();
+    if (!/^\d+$/.test(indexText) || !urlText) {
+      return { error: `第 ${i + 1} 行格式不符合 <index>, <youtube URL>` };
+    }
+    if (!isYouTubeUrl(urlText)) {
+      return { error: `第 ${i + 1} 行不是合法的 YouTube URL` };
+    }
+    const timeSeconds = parseTimeFromUrl(urlText);
+    if (timeSeconds === null) {
+      return { error: `第 ${i + 1} 行 URL 缺少有效的時間參數` };
+    }
+    entries.push({
+      order: Number.parseInt(indexText, 10),
+      url: urlText,
+      timeSeconds,
+    });
+  }
+
+  if (entries.length === 0) {
+    return { error: "匯入檔案沒有有效內容。" };
+  }
+
+  entries.sort((a, b) => a.order - b.order);
+  const records = entries.map((entry, index) => ({
+    id: Date.now() + index,
+    url: entry.url,
+    timeSeconds: entry.timeSeconds,
+    displayTime: formatTime(entry.timeSeconds),
+  }));
+
+  return { records };
+}
+
+function replaceRecords(records) {
+  chrome.storage.local.set({ [STORAGE_KEYS.records]: records }, () => {
+    cachedRecords = records;
+    currentPage = 1;
+    renderPagination();
+    log("Records imported.", { count: records.length });
+  });
+}
+
+function importRecords() {
+  if (cachedRecords.length > 0) {
+    const shouldReplace = window.confirm(
+      "已存在紀錄，是否覆蓋現有內容？"
+    );
+    if (!shouldReplace) {
+      log("Import canceled by user.");
+      return;
+    }
+  }
+
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".csv,text/csv";
+  input.addEventListener("change", () => {
+    const file = input.files && input.files[0];
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = parseImportCsv(String(reader.result || ""));
+      if (result.error) {
+        window.alert(result.error);
+        log("Import failed.", { error: result.error });
+        return;
+      }
+      replaceRecords(result.records);
+    };
+    reader.onerror = () => {
+      window.alert("讀取檔案失敗，請再試一次。");
+      log("Import failed: file read error.");
+    };
+    reader.readAsText(file);
+  });
+  input.click();
+}
+
 function attachEvents() {
   const recordBtn = document.getElementById("yt-slicer-record");
   const clearBtn = document.getElementById("yt-slicer-clear");
   const exportBtn = document.getElementById("yt-slicer-export");
+  const importBtn = document.getElementById("yt-slicer-import");
   const prevBtn = document.getElementById("yt-slicer-prev");
   const nextBtn = document.getElementById("yt-slicer-next");
 
@@ -401,6 +538,9 @@ function attachEvents() {
   }
   if (exportBtn) {
     exportBtn.addEventListener("click", exportRecords);
+  }
+  if (importBtn) {
+    importBtn.addEventListener("click", importRecords);
   }
   if (prevBtn) {
     prevBtn.addEventListener("click", () => {
