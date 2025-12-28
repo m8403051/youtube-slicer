@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Slicer",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Record YouTube timestamps and navigate back quickly.",
   "permissions": ["activeTab", "storage"],
   "host_permissions": ["https://www.youtube.com/*", "https://youtu.be/*"],
